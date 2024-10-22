@@ -2,6 +2,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <algorithm>
 #include "scip/scip.h"
 #include "scip/scipdefplugins.h"
 #include "scip_exception.hpp"
@@ -28,9 +29,12 @@ SCIP_RETCODE mainproblem(){
             for (auto e : v) {
                 SCIP_VAR* var = nullptr;
                 string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
-                SCIP_CALL(SCIPcreateVarBasic(scip, &var, varname.c_str(), 0.0, 1.0, e.weight, SCIP_VARTYPE_BINARY));
-                SCIP_CALL(SCIPaddVar(scip, var));
-                varmap[varname] = var;  // Lưu lại biến vào map
+                if(varmap.find(varname) == varmap.end()){
+                    SCIP_CALL(SCIPcreateVarBasic(scip, &var, varname.c_str(), 0.0, 1.0, e.weight, SCIP_VARTYPE_BINARY));
+                    SCIP_CALL(SCIPaddVar(scip, var));
+                    varmap[varname] = var;  // Lưu lại biến vào map
+                }
+                
             }
         }
     }
@@ -61,10 +65,6 @@ SCIP_RETCODE Constraints1() {
             // Lưu trữ ràng buộc để sử dụng sau này
             cons1.push_back(cons);
         }
-        
-        
-        
-        
         
     }
     
@@ -183,14 +183,54 @@ int main(int argc, char** argv) {
     // 7. In kết quả
     SCIP_SOL* sol = SCIPgetBestSol(scip);
     if (sol != nullptr) {
+        map<string,vector<pair<int,int>>> paths;
         cout << "Optimal solution found:" << endl;
         for (auto& [varname, var] : varmap) {
             SCIP_Real val = SCIPgetSolVal(scip, sol, var);
             int int_val = static_cast<int>(val);
             if(int_val == 1){
-                cout << varname << " = " << int_val << endl;
+                //cout << varname << " = " << int_val << endl;
+                vector<string> tmp;
+                string token;
+                stringstream ss(varname);
+                while (std::getline(ss, token, '_')) {
+                    tmp.push_back(token); // Lưu từng phần tách vào vector
+                }
+                paths[tmp[1]].push_back(make_pair(stoi(tmp[2]),stoi(tmp[3])));
             }
         }
+        for(auto pair : paths){
+            std::sort(pair.second.begin(), pair.second.end(), [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+                if (a.first == b.first)
+                    return a.second < b.second;
+                return a.first < b.first;
+            });
+            int cost = 0;
+            for(auto p : pair.second){
+                cout<<"a "<<p.first<<" "<<p.second<<"    ";
+                if(invertex.find(p.first) == invertex.end()){
+                    cout<<"0 + ";
+                    for(auto e : outvertex[p.first]){
+                        if (e.end_node == p.second){
+                            cout<<e.weight<<" = ";
+                            cost = cost + e.weight;
+                        }
+                    }
+                    cout<<cost<<endl;
+                }
+                else{
+                    cout<<cost<<" + ";
+                    for(auto e : outvertex[p.first]){
+                        if (e.end_node == p.second){
+                            cout<<e.weight<<" = ";
+                            cost = cost + e.weight;
+                        }
+                    }
+                    cout<<cost<<endl;
+                }
+            }
+        }
+
     } else {
         cout << "No solution found." << endl;
     }
@@ -199,7 +239,6 @@ int main(int argc, char** argv) {
     for (auto& [varname, var] : varmap) {
         SCIP_CALL(SCIPreleaseVar(scip, &var));  // Đảm bảo tất cả các biến đều được giải phóng
     }
-
     // Giải phóng các constraints
     for(SCIP_CONS* con : cons1){
         SCIP_CALL(SCIPreleaseCons(scip, &con));

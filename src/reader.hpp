@@ -30,11 +30,11 @@ void readinput(){
         }
     }
     int i,count = 0;
-    for(i=0;i<agvsinfo.size(); i = i+2){
+    for(i=0;i<(agvsinfo.size())/2; i++){
         AGV agv;
         string tmp;
         istringstream iss1(agvsinfo[i]);
-        istringstream iss2(agvsinfo[i+1]);
+        istringstream iss2(agvsinfo[i+(agvsinfo.size())/2]);
         iss1>>tmp;
         iss1>>agv.start_node;
         iss2>>tmp;

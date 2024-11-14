@@ -58,15 +58,14 @@ include $(SCIPDIR)/make/make.project
 # Main Program
 #-----------------------------------------------------------------------------
 
-MAINNAME        = solver
-MAINOBJ         = solver.o
-MAINSRC         = $(SRCDIR)/solver.cpp
+MAINNAME        = main
+MAINOBJ         = main.o reader.o SCIPsolver.o
+MAINSRC         = $(SRCDIR)/main.cpp $(SRCDIR)/reader.cpp $(SRCDIR)/SCIPsolver.cpp
 
-
-MAIN		=	$(MAINNAME).$(BASE).$(LPS)$(EXEEXTENSION)
-MAINFILE	=	$(BINDIR)/$(MAIN)
-MAINSHORTLINK	=	$(BINDIR)/$(MAINNAME)
-MAINOBJFILES	=	$(addprefix $(OBJDIR)/,$(MAINOBJ))
+MAIN            = $(MAINNAME).$(BASE).$(LPS)$(EXEEXTENSION)
+MAINFILE        = $(BINDIR)/$(MAIN)
+MAINSHORTLINK   = $(BINDIR)/$(MAINNAME)
+MAINOBJFILES    = $(addprefix $(OBJDIR)/,$(MAINOBJ))
 
 #-----------------------------------------------------------------------------
 # External libraries

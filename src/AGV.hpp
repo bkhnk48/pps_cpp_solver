@@ -1,11 +1,21 @@
-#include<iostream>
-#include<vector>
-#include<map>
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <map>
+#include <sstream>
+#include <string>
 
-using namespace std;
-typedef struct{
-    int id;
-    int start_node;
-    int end_node;
-}AGV;
-vector<AGV> AGVs;
+#ifndef AGV_HPP
+#define AGV_HPP
+class AGV
+{
+    public:
+        int id;
+        int start_node;
+        int end_node;
+        int earliness;
+        int tardliness;     
+        
+    AGV() : id(0), start_node(0), end_node(0), earliness(0), tardliness(0) {}
+};
+#endif // AGV_HPP

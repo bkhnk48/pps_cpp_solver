@@ -1,29 +1,56 @@
-#include<iostream>
-#include<vector>
-#include<map>
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <map>
+#include <sstream>
+#include <string>
+
 using namespace std;
 
-typedef struct {
+#ifndef EDGE_HPP
+#define EDGE_HPP
+class Edge
+{
+public:
     int start_node;
     int end_node;
     int lower;
     int upper;
     int weight;
-} edge;
-vector<edge> edges;
-map<int, vector<edge>> vertex_with_the_same_start_node(){
-    map<int, vector<edge>> tmp;
-    for(auto e : edges){
-        tmp[e.start_node].push_back(e);
+
+    Edge() : start_node(0), end_node(0), lower(0), upper(0), weight(0.0) {}
+
+    Edge(int start, int end, int low, int up, int w)
+        : start_node(start), end_node(end), lower(low), upper(up), weight(w) {}
+};
+
+class Graph
+{
+public:
+    
+
+
+    vector<Edge> edges;
+
+    map<int, vector<Edge>> vertex_with_the_same_start_node(vector<Edge> edges)
+    {
+        map<int, vector<Edge>> tmp;
+        for (const auto& e : edges)
+        {
+            tmp[e.start_node].push_back(e);
+        }
+        return tmp;
     }
-    return tmp;
-}
-map<int, vector<edge>> vertex_with_the_same_target_node(){
-    map<int, vector<edge>> tmp;
-    for(auto e : edges){
-        tmp[e.end_node].push_back(e);
+
+    map<int, vector<Edge>> vertex_with_the_same_target_node(vector<Edge> edges)
+    {
+        map<int, vector<Edge>> tmp;
+        for (const auto& e : edges)
+        {
+            tmp[e.end_node].push_back(e);
+        }
+        return tmp;
     }
-    return tmp;
-}
-map<int, vector<edge>> invertex;
-map<int, vector<edge>> outvertex;
+};
+
+#endif // EDGE_HPP

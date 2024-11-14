@@ -405,4 +405,4 @@ obj/static/O.linux.x86_64.gnu.opt/solver.o: src/solver.cpp \
  /mnt/d/DATN/solver/scipoptsuite-8.0.1/scip/src/scip/nlpi_all.h \
  src/scip_exception.hpp \
  /mnt/d/DATN/solver/scipoptsuite-8.0.1/scip/src/scip/misc.h \
- src/reader.hpp src/AGV.hpp src/Edge.hpp
+ src/reader.hpp src/coefficient.hpp src/AGV.hpp src/Edge.hpp

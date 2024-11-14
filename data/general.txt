@@ -1,0 +1,4 @@
+/mnt/d/DATN/solver/prj/data/Agvinfo.txt
+/mnt/d/DATN/solver/prj/data/info.txt
+/mnt/d/DATN/solver/prj/data/spacemap.txt
+/mnt/d/DATN/solver/prj/data/example.txt

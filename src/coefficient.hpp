@@ -11,6 +11,7 @@ typedef struct coefficient {
     int beta;
     int gamma;
     int N;
+    int max;
     vector<AGV> AGVs;
     vector<pair<vector<Edge>, int>> restriction;
     map<int, vector<Edge>> invertex;

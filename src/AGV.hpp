@@ -15,6 +15,7 @@ class AGV
         int end_node;
         int earliness;
         int tardliness;     
+        int destination_node;
         
     AGV() : id(0), start_node(0), end_node(0), earliness(0), tardliness(0) {}
 };

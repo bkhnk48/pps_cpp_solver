@@ -118,23 +118,21 @@ SCIP_RETCODE Solver::mainproblem()
     }
 
     // z_i_j >= 0
-    for (int i = 0; i < this->Problem.restriction.size(); ++i){
+    for (int i = 0; i < this->Problem.restriction.size(); ++i)
+    {
         SCIP_CONS *cons = nullptr;
-        SCIP_CALL(SCIPcreateConsBasicLinear(this->scip, 
+        SCIP_CALL(SCIPcreateConsBasicLinear(this->scip,
                                             &cons,
-                                            "cons_z_ge_0", 
-                                            0, 
-                                            nullptr, 
-                                            nullptr, 
+                                            "cons_z_ge_0",
+                                            0,
+                                            nullptr,
+                                            nullptr,
                                             0.0,
                                             SCIPinfinity(scip)));
         string z_var = "z_" + to_string(i);
         SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[z_var], 1.0));
         SCIP_CALL(SCIPaddCons(this->scip, cons));
     }
-
-
-
 
     return SCIP_OKAY;
 }
@@ -180,15 +178,15 @@ SCIP_RETCODE Solver::Constraint1()
 
 SCIP_RETCODE Solver::Constraint2()
 {
-    set<int> eliminate;
+    map<int, set<int>> eliminate;
     for (auto agv : this->Problem.AGVs)
     {
-        eliminate.insert(agv.start_node);
+        eliminate[agv.id].insert(agv.start_node);
         for (auto pair : this->Problem.invertex)
         {
             if (agv.end_node % this->Problem.N == pair.first % this->Problem.N)
             {
-                eliminate.insert(pair.first);
+                eliminate[agv.id].insert(pair.first);
             }
         }
     }
@@ -198,7 +196,7 @@ SCIP_RETCODE Solver::Constraint2()
         for (auto pair : this->Problem.outvertex)
         {
             int node = pair.first;
-            if (eliminate.find(node) == eliminate.end())
+            if (eliminate[agv.id].find(node) == eliminate[agv.id].end())
             {
                 SCIP_CONS *cons = nullptr;
                 SCIP_CALL(SCIPcreateConsBasicLinear(
@@ -231,21 +229,25 @@ SCIP_RETCODE Solver::Constraint2()
 
 SCIP_RETCODE Solver::Constraint3()
 {
-    set<int> destination;
+    map<int, set<int>> destination;
     for (auto agv : this->Problem.AGVs)
     {
         for (auto pair : this->Problem.invertex)
         {
             if (agv.end_node % this->Problem.N == pair.first % this->Problem.N)
             {
-                destination.insert(pair.first);
+                destination[agv.id].insert(pair.first);
             }
         }
+    }
+    for (auto agv : this->Problem.AGVs)
+    {
+        destination[agv.id].erase(agv.start_node);
     }
 
     for (auto agv : this->Problem.AGVs)
     {
-        for (auto Possible_end_node : destination)
+        for (auto Possible_end_node : destination[agv.id])
         {
             SCIP_CONS *cons = nullptr;
             SCIP_CALL(SCIPcreateConsBasicLinear(this->scip,
@@ -314,14 +316,14 @@ SCIP_RETCODE Solver::Constraint4()
 
 SCIP_RETCODE Solver::Constraint5()
 {
-    set<int> destination;
+    map<int, vector<int>> destination;
     for (auto agv : this->Problem.AGVs)
     {
         for (auto pair : this->Problem.invertex)
         {
             if (agv.end_node % this->Problem.N == pair.first % this->Problem.N)
             {
-                destination.insert(pair.first);
+                destination[agv.end_node].push_back(pair.first);
             }
         }
     }
@@ -338,7 +340,7 @@ SCIP_RETCODE Solver::Constraint5()
                                             nullptr,
                                             1.0,
                                             1.0));
-        for (auto Possible_end_node : destination)
+        for (auto Possible_end_node : destination[agv.end_node])
         {
 
             for (auto e : this->Problem.invertex[Possible_end_node])
@@ -357,8 +359,24 @@ SCIP_RETCODE Solver::Constraint5()
 
 SCIP_RETCODE Solver::Constraint6()
 {
-
     return SCIP_OKAY;
+}
+void Solver::set_end_queue()
+{
+    for (auto it = this->Problem.AGVs.begin(); it != this->Problem.AGVs.end();)
+    {
+        if (it->start_node % this->Problem.N == it->end_node % this->Problem.N)
+        {
+
+            this->agv_end_queue.push_back(*it);
+
+            it = this->Problem.AGVs.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 SCIP_RETCODE Solver::Solve()
@@ -395,6 +413,7 @@ SCIP_RETCODE Solver::Result()
 
     if (sol != nullptr)
     {
+        map<int, vector<pair<int, int>>> agvs_path;
         cout << "Optimal solution found:" << endl;
         for (auto &[varname, var] : this->varmap)
         {
@@ -403,13 +422,44 @@ SCIP_RETCODE Solver::Result()
 
             if (int_val == 1)
             {
-                cout << varname << " = " << int_val << endl;
+                string tmp, id, pre_node, next_node;
+
+                stringstream ss(varname);
+
+                // Use getline to extract the parts
+                getline(ss, tmp, '_');
+                getline(ss, id, '_');
+                getline(ss, pre_node, '_');
+                getline(ss, next_node, '_');
+
+                if (tmp[0] == 'x')
+                {
+                    agvs_path[stoi(id)].push_back(make_pair(stoi(pre_node), stoi(next_node)));
+                }
+                /*int pre_time = (stoi(pre_node) % this->Problem.N == 0) ? (stoi(pre_node) / this->Problem.N - 1) : (stoi(pre_node) / this->Problem.N);
+                int next_time = (stoi(next_node) % this->Problem.N == 0) ? (stoi(next_node) / this->Problem.N - 1) : (stoi(next_node) / this->Problem.N);
+                int time = next_time - pre_time;
+                cout << "a " << pre_node << " " << next_node << " " << pre_time << " + " << time << " = " << next_time << endl;
+                */
             }
         }
+        for (auto agv : this->Problem.AGVs)
+        {
+            int tmp = 0;
+            for (auto pair : agvs_path[agv.id])
+            {
+                int pre_time = (pair.first % this->Problem.N == 0) ? (pair.first / this->Problem.N - 1) : (pair.first / this->Problem.N);
+                int next_time = (pair.second % this->Problem.N == 0) ? (pair.second / this->Problem.N - 1) : (pair.second / this->Problem.N);
+                int time = next_time - pre_time;
+                cout << "a " << pair.first << " " << pair.second << " " << pre_time << " + " << time << " = " << next_time << endl;
+                tmp = max(tmp, pair.second);
+            }
+            cout << "a " << tmp << " " << agv.destination_node << endl;
+        }
     }
-    else
+    for (auto agv : this->agv_end_queue)
     {
-        cout << "No solution found." << endl;
+        cout << "a " << agv.start_node << " " << agv.destination_node << endl;
     }
 
     return SCIP_OKAY;

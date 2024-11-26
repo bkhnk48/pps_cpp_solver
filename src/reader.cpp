@@ -1,7 +1,16 @@
 // reader.cpp
+#include <climits>
 #include "reader.hpp"
 
 Reader::Reader(string path) : filepath(path) {}
+
+void Reader::set_max_node(){
+    int tmp = INT_MAX;
+    for(auto agv : this->coef.AGVs){
+        tmp = min(agv.destination_node,tmp);
+    }
+    this->coef.max = tmp;
+}
 
 void Reader::controller()
 {
@@ -77,7 +86,10 @@ void Reader::get_TSG_input()
             iss >> e.lower;
             iss >> e.upper;
             iss >> e.weight;
-            g.edges.push_back(e);
+            if (e.end_node < this->coef.max)
+            {
+                g.edges.push_back(e);
+            }
         }
     }
 
@@ -114,7 +126,7 @@ void Reader::get_agv_info()
         if (!getline(file_agv, line))
             break;
         istringstream window_time_iss(line);
-        window_time_iss >> str >> agv.earliness >> agv.tardliness;
+        window_time_iss >> str >> agv.earliness >> agv.tardliness >> agv.destination_node;
 
         agv_id++;
         this->coef.AGVs.push_back(agv);
@@ -132,7 +144,6 @@ void Reader::get_coef_res_input()
         std::cerr << "Không thể mở file!" << std::endl;
         return;
     }
-
     getline(coef_res_file, line);
     stringstream iss(line);
     iss >> str >> this->coef.alpha >> this->coef.beta >> this->coef.gamma;
@@ -159,10 +170,13 @@ void Reader::get_coef_res_input()
 
 Coef Reader::set_coef()
 {
+    
     controller();
+    get_coef_res_input();
+    get_agv_info();
+    set_max_node();
     get_map_input();
     get_TSG_input();
-    get_agv_info();
-    get_coef_res_input();
+
     return this->coef;
 }

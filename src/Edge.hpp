@@ -27,15 +27,12 @@ public:
 class Graph
 {
 public:
-    
-
-
     vector<Edge> edges;
 
     map<int, vector<Edge>> vertex_with_the_same_start_node(vector<Edge> edges)
     {
         map<int, vector<Edge>> tmp;
-        for (const auto& e : edges)
+        for (const auto &e : edges)
         {
             tmp[e.start_node].push_back(e);
         }
@@ -45,7 +42,7 @@ public:
     map<int, vector<Edge>> vertex_with_the_same_target_node(vector<Edge> edges)
     {
         map<int, vector<Edge>> tmp;
-        for (const auto& e : edges)
+        for (const auto &e : edges)
         {
             tmp[e.end_node].push_back(e);
         }

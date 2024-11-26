@@ -19,6 +19,7 @@ class Solver{
         vector<SCIP_CONS *> cons5;
         vector<SCIP_CONS *> cons6;
         map<string, SCIP_VAR *> varmap;
+        vector<AGV> agv_end_queue;
     public:
         Coef Problem;
 
@@ -30,6 +31,7 @@ class Solver{
         SCIP_RETCODE Constraint4();
         SCIP_RETCODE Constraint5();
         SCIP_RETCODE Constraint6();
+        void set_end_queue();
         SCIP_RETCODE Solve();
         SCIP_RETCODE Result();
         SCIP_RETCODE Free_resources();

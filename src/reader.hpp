@@ -18,6 +18,7 @@ private:
     string agv_input;
     string coef_res_input;
     string tsg_input;
+    void set_max_node();
 
 public:
     Coef coef;
@@ -32,5 +33,7 @@ public:
     void get_coef_res_input();
     Coef set_coef();
 };
+
+
 
 #endif // READER_HPP

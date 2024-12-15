@@ -10,20 +10,9 @@
 class Solver{
     private:
         SCIP *scip = nullptr;
-        vector<SCIP_CONS *> subcons1;
-        vector<SCIP_CONS *> subcons2;
-        vector<SCIP_CONS *> cons1;
-        vector<SCIP_CONS *> cons2;
-        vector<SCIP_CONS *> cons3;
-        vector<SCIP_CONS *> cons4;
-        vector<SCIP_CONS *> cons5;
-        vector<SCIP_CONS *> cons6;
+        vector<SCIP_CONS *> cons;
         map<string, SCIP_VAR *> varmap;
         vector<AGV> agv_end_queue;
-    public:
-        Coef Problem;
-
-        Solver(Coef Problem);
         SCIP_RETCODE mainproblem();
         SCIP_RETCODE Constraint1();
         SCIP_RETCODE Constraint2();
@@ -31,6 +20,11 @@ class Solver{
         SCIP_RETCODE Constraint4();
         SCIP_RETCODE Constraint5();
         SCIP_RETCODE Constraint6();
+    public:
+        Coef Problem;
+
+        Solver(Coef Problem);
+       
         void set_end_queue();
         SCIP_RETCODE Solve();
         SCIP_RETCODE Result();

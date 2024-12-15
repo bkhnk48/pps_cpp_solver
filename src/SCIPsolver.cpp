@@ -108,13 +108,25 @@ SCIP_RETCODE Solver::mainproblem()
         {
             for (auto e : pair.first)
             {
-                string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
-                SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
+                if (this->Problem.outvertex.find(e.start_node) != this->Problem.outvertex.end())
+                {
+                    int count = 0;
+                    for (auto edge : this->Problem.outvertex[e.start_node])
+                    {
+                        if (e.end_node == edge.end_node)
+                            count++;
+                    }
+                    if (count > 0)
+                    {
+                        string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
+                        SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
+                    }
+                }
             }
         }
-        SCIP_CALL(SCIPchgRhsLinear(this->scip, cons, -pair.second));
+        SCIP_CALL(SCIPchgLhsLinear(this->scip, cons, -pair.second));
         SCIP_CALL(SCIPaddCons(this->scip, cons));
-        this->subcons1.push_back(cons);
+        this->cons.push_back(cons);
     }
 
     // z_i_j >= 0
@@ -132,6 +144,7 @@ SCIP_RETCODE Solver::mainproblem()
         string z_var = "z_" + to_string(i);
         SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[z_var], 1.0));
         SCIP_CALL(SCIPaddCons(this->scip, cons));
+        this->cons.push_back(cons);
     }
 
     return SCIP_OKAY;
@@ -169,7 +182,7 @@ SCIP_RETCODE Solver::Constraint1()
             SCIP_CALL(SCIPaddCons(this->scip, cons));
 
             // Lưu trữ ràng buộc để sử dụng sau này
-            this->cons1.push_back(cons);
+            this->cons.push_back(cons);
         }
     }
 
@@ -219,7 +232,7 @@ SCIP_RETCODE Solver::Constraint2()
                     SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
                 }
                 SCIP_CALL(SCIPaddCons(this->scip, cons));
-                this->cons2.push_back(cons);
+                this->cons.push_back(cons);
             }
         }
     }
@@ -272,7 +285,7 @@ SCIP_RETCODE Solver::Constraint3()
                 }
             }
             SCIP_CALL(SCIPaddCons(this->scip, cons));
-            this->cons3.push_back(cons);
+            this->cons.push_back(cons);
         }
     }
 
@@ -308,7 +321,7 @@ SCIP_RETCODE Solver::Constraint4()
 
         SCIP_CALL(SCIPaddCons(this->scip, cons));
 
-        this->cons4.push_back(cons);
+        this->cons.push_back(cons);
     }
 
     return SCIP_OKAY;
@@ -351,7 +364,7 @@ SCIP_RETCODE Solver::Constraint5()
         }
 
         SCIP_CALL(SCIPaddCons(this->scip, cons));
-        this->cons5.push_back(cons);
+        this->cons.push_back(cons);
     }
 
     return SCIP_OKAY;
@@ -474,34 +487,11 @@ SCIP_RETCODE Solver::Free_resources()
     }
 
     // Giải phóng các constraints
-    for (SCIP_CONS *con : this->subcons1)
+    for (SCIP_CONS *con : this->cons)
     {
         SCIP_CALL(SCIPreleaseCons(this->scip, &con));
     }
-    for (SCIP_CONS *con : this->subcons2)
-    {
-        SCIP_CALL(SCIPreleaseCons(this->scip, &con));
-    }
-    for (SCIP_CONS *con : this->cons1)
-    {
-        SCIP_CALL(SCIPreleaseCons(this->scip, &con));
-    }
-    for (SCIP_CONS *con : this->cons2)
-    {
-        SCIP_CALL(SCIPreleaseCons(this->scip, &con));
-    }
-    for (SCIP_CONS *con : this->cons3)
-    {
-        SCIP_CALL(SCIPreleaseCons(this->scip, &con));
-    }
-    for (SCIP_CONS *con : this->cons4)
-    {
-        SCIP_CALL(SCIPreleaseCons(this->scip, &con));
-    }
-    for (SCIP_CONS *con : this->cons6)
-    {
-        SCIP_CALL(SCIPreleaseCons(this->scip, &con));
-    }
+    
 
     return SCIP_OKAY;
 }

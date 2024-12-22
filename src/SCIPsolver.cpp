@@ -52,8 +52,19 @@ SCIP_RETCODE Solver::mainproblem()
     }
     for (auto agv : this->Problem.AGVs)
     {
+        for (auto pair : task_info)
+        {
+            if (agv.start_node % this->Problem.N == pair.first % this->Problem.N)
+            {
+                destination.insert(agv.start_node);
+            }
+        }
+    }
+    for (auto agv : this->Problem.AGVs)
+    {
         for (auto Possible_end_node : destination)
         {
+            int id = (Possible_end_node % this->Problem.N == 0) ? (this->Problem.N) : (Possible_end_node % this->Problem.N);
             int totaltime;
             if (Possible_end_node % this->Problem.N == 0)
             {
@@ -63,8 +74,8 @@ SCIP_RETCODE Solver::mainproblem()
             {
                 totaltime = (Possible_end_node / this->Problem.N);
             }
-            int weight = max(get<0>(task_info[Possible_end_node % this->Problem.N]) - totaltime, 0);
-            weight = max(get<1>(task_info[Possible_end_node % this->Problem.N]), 0);
+            int weight = max(get<0>(task_info[id]) - totaltime, 0);
+            weight = max(totaltime - get<1>(task_info[id]), weight);
             SCIP_VAR *var = nullptr;
             string varname = "y_" + to_string(agv.id) + "_" + to_string(Possible_end_node);
             SCIP_CALL(SCIPcreateVarBasic(this->scip,
@@ -98,8 +109,6 @@ SCIP_RETCODE Solver::mainproblem()
             this->varmap[varname] = var;
         }
     }
-
-    
 
     return SCIP_OKAY;
 }
@@ -209,22 +218,17 @@ SCIP_RETCODE Solver::Constraint3()
     }
     for (auto agv : this->Problem.AGVs)
     {
-        destination.erase(agv.start_node);
-    }
-
-    for (auto agv : this->Problem.AGVs)
-    {
         for (auto Possible_end_node : destination)
         {
             SCIP_CONS *cons = nullptr;
             SCIP_CALL(SCIPcreateConsBasicLinear(this->scip,
                                                 &cons,
-                                                ("Stop_at_" + to_string(Possible_end_node)).c_str(),
+                                                "TW_Equal_1",
                                                 0,
                                                 nullptr,
                                                 nullptr,
                                                 0.0,
-                                                1.0));
+                                                0.0));
             for (auto e : this->Problem.invertex[Possible_end_node])
             {
                 string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
@@ -238,11 +242,12 @@ SCIP_RETCODE Solver::Constraint3()
                     SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
                 }
             }
+            string varname = "y_" + to_string(agv.id) + "_" + to_string(Possible_end_node);
+            SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
             SCIP_CALL(SCIPaddCons(this->scip, cons));
             this->cons.push_back(cons);
         }
     }
-
     return SCIP_OKAY;
 }
 
@@ -272,6 +277,11 @@ SCIP_RETCODE Solver::Constraint4()
                 SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
             }
         }
+        string varname = "y_" + to_string(agv.id) + "_" + to_string(agv.start_node);
+        if (this->varmap.find(varname) != this->varmap.end())
+        {
+            SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], 1.0));
+        }
 
         SCIP_CALL(SCIPaddCons(this->scip, cons));
 
@@ -282,6 +292,11 @@ SCIP_RETCODE Solver::Constraint4()
 }
 SCIP_RETCODE Solver::Constraint5()
 {
+    set<int> end_nodes_task;
+    for (auto agv : this->Problem.AGVs)
+    {
+        end_nodes_task.insert(agv.end_node);
+    }
     map<int, set<int>> destination;
     for (auto agv : this->Problem.AGVs)
     {
@@ -293,45 +308,41 @@ SCIP_RETCODE Solver::Constraint5()
             }
         }
     }
-    vector<int> end_nodes;
     for (auto agv : this->Problem.AGVs)
     {
-        end_nodes.push_back(agv.end_node);
+        for (auto end_node : end_nodes_task)
+        {
+            if (agv.start_node % this->Problem.N == end_node % this->Problem.N)
+            {
+                destination[agv.end_node].insert(agv.start_node);
+            }
+        }
     }
-    for (auto end_node : end_nodes)
+    map<int, int> end_nodes;
+    for (auto agv : this->Problem.AGVs)
+    {
+        end_nodes[agv.end_node]++;
+    }
+    for (auto pair : end_nodes)
     {
         SCIP_CONS *cons = nullptr;
         SCIP_CALL(SCIPcreateConsBasicLinear(this->scip,
                                             &cons,
-                                            "End_Task_Equal_1",
+                                            "End_Task_Equal_Given",
                                             0,
                                             nullptr,
                                             nullptr,
-                                            1.0,
-                                            SCIP_VARTYPE_CONTINUOUS));
-        for (auto Possible_end_node : destination[end_node])
+                                            pair.second,
+                                            pair.second));
+        for (auto Possible_end_node : destination[pair.first])
         {
-            for (auto e : this->Problem.invertex[Possible_end_node])
+            for (auto agv : this->Problem.AGVs)
             {
-                for (auto agv : this->Problem.AGVs)
-                {
-                    string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
-                    SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], 1.0));
-                }
+                string varname = "y_" + to_string(agv.id) + "_" + to_string(Possible_end_node);
+                SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], 1.0));
             }
-            if (this->Problem.outvertex.find(Possible_end_node) != this->Problem.outvertex.end())
-            {
-                for (auto agv : this->Problem.AGVs)
-                {
-                    for (auto e : this->Problem.outvertex[Possible_end_node])
-                    {
-                        string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
-                        SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
-                    }
-                }
-            }
-            
         }
+
         SCIP_CALL(SCIPaddCons(this->scip, cons));
         this->cons.push_back(cons);
     }
@@ -372,7 +383,11 @@ SCIP_RETCODE Solver::Constraint6()
                 SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], 1.0));
             }
         }
-
+        string varname = "y_" + to_string(agv.id) + "_" + to_string(agv.start_node);
+        if (this->varmap.find(varname) != this->varmap.end())
+        {
+            SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], 1.0));
+        }
         SCIP_CALL(SCIPaddCons(this->scip, cons));
         this->cons.push_back(cons);
     }
@@ -380,56 +395,13 @@ SCIP_RETCODE Solver::Constraint6()
     return SCIP_OKAY;
 }
 
-
 SCIP_RETCODE Solver::SubTWcons()
 {
-    set<int> destination;
-    for (auto agv : this->Problem.AGVs)
-    {
-        for (auto pair : this->Problem.invertex)
-        {
-            if (agv.end_node % this->Problem.N == pair.first % this->Problem.N)
-            {
-                destination.insert(pair.first);
-            }
-        }
-    }
-    for (auto agv : this->Problem.AGVs)
-    {
-        for (auto Possible_end_node : destination)
-        {
-            SCIP_CONS *cons = nullptr;
-            SCIP_CALL(SCIPcreateConsBasicLinear(this->scip,
-                                                &cons,
-                                                "TW_Equal_1",
-                                                0,
-                                                nullptr,
-                                                nullptr,
-                                                0.0,
-                                                0.0));
-            for (auto e : this->Problem.invertex[Possible_end_node])
-            {
-                string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
-                SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], 1.0));
-            }
-            if (this->Problem.outvertex.find(Possible_end_node) != this->Problem.outvertex.end())
-            {
-                for (auto e : this->Problem.outvertex[Possible_end_node])
-                {
-                    string varname = "x_" + to_string(agv.id) + "_" + to_string(e.start_node) + "_" + to_string(e.end_node);
-                    SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
-                }
-            }
-            string varname = "y_" + to_string(agv.id) + "_" + to_string(Possible_end_node);
-            SCIP_CALL(SCIPaddCoefLinear(this->scip, cons, this->varmap[varname], -1.0));
-            SCIP_CALL(SCIPaddCons(this->scip, cons));
-            this->cons.push_back(cons);
-        }
-    }
     return SCIP_OKAY;
 }
 
-SCIP_RETCODE Solver::SubRestrictioncons(){
+SCIP_RETCODE Solver::SubRestrictioncons()
+{
     // z_i_j >= number of agv - Ur
     for (int i = 0; i < this->Problem.restriction.size(); ++i)
     {
@@ -472,7 +444,6 @@ SCIP_RETCODE Solver::SubRestrictioncons(){
     }
     return SCIP_OKAY;
 }
-
 
 void Solver::set_end_queue()
 {
@@ -525,7 +496,6 @@ SCIP_RETCODE Solver::Solve()
 
 SCIP_RETCODE Solver::Result()
 {
-
     SCIP_SOL *sol = SCIPgetBestSol(this->scip);
 
     if (sol != nullptr)
@@ -539,26 +509,42 @@ SCIP_RETCODE Solver::Result()
 
             if (int_val == 1)
             {
-                cout << varname << " = " << int_val << endl;
-                /*string tmp, id, pre_node, next_node;
-
-                stringstream ss(varname);
-
-                // Use getline to extract the parts
-                getline(ss, tmp, '_');
-                getline(ss, id, '_');
-                getline(ss, pre_node, '_');
-                getline(ss, next_node, '_');
-
-                if (tmp[0] == 'x')
+                if (varname[0] == 'x')
                 {
-                    agvs_path[stoi(id)].push_back(make_pair(stoi(pre_node), stoi(next_node)));
+                    stringstream ss(varname);
+
+                    // Use getline to extract the partss
+                    string tmp, id, pre_node, next_node;
+                    getline(ss, tmp, '_');
+                    getline(ss, id, '_');
+                    getline(ss, pre_node, '_');
+                    getline(ss, next_node, '_');
+                    // agvs_path[stoi(id)].push_back(make_pair(stoi(pre_node), stoi(next_node)));
+                    int pre_time = (stoi(pre_node) % this->Problem.N == 0) ? (stoi(pre_node) / this->Problem.N - 1) : (stoi(pre_node) / this->Problem.N);
+                    int next_time = (stoi(next_node) % this->Problem.N == 0) ? (stoi(next_node) / this->Problem.N - 1) : (stoi(next_node) / this->Problem.N);
+                    int time = next_time - pre_time;
+                    cout << "a " << pre_node << " " << next_node << " " << pre_time << " + " << time << " = " << next_time << endl;
                 }
-                /*int pre_time = (stoi(pre_node) % this->Problem.N == 0) ? (stoi(pre_node) / this->Problem.N - 1) : (stoi(pre_node) / this->Problem.N);
-                int next_time = (stoi(next_node) % this->Problem.N == 0) ? (stoi(next_node) / this->Problem.N - 1) : (stoi(next_node) / this->Problem.N);
-                int time = next_time - pre_time;
-                cout << "a " << pre_node << " " << next_node << " " << pre_time << " + " << time << " = " << next_time << endl;
-                */
+                if (varname[0] == 'y')
+                {
+                    string tmp, id, TWnodesrc;
+                    stringstream ss(varname);
+                    getline(ss, tmp, '_');
+                    getline(ss, id, '_');
+                    getline(ss, TWnodesrc, '_');
+                    for (auto it = this->Problem.AGVs.begin(); it != this->Problem.AGVs.end();)
+                    {
+                        if (it->end_node % this->Problem.N == stoi(TWnodesrc) % this->Problem.N)
+                        {
+                            cout << "a " << TWnodesrc << " " << it->destination_node << endl;
+                            it = this->Problem.AGVs.erase(it);
+                            break;
+                        }
+                        else{
+                            it++;
+                        }
+                    }
+                }
             }
         }
         /*for (auto agv : this->Problem.AGVs)
@@ -575,10 +561,6 @@ SCIP_RETCODE Solver::Result()
             cout << "a " << tmp << " " << agv.destination_node << endl;
         }*/
     }
-    /*for (auto agv : this->agv_end_queue)
-    {
-        cout << "a " << agv.start_node << " " << agv.destination_node << endl;
-    }*/
 
     return SCIP_OKAY;
 }

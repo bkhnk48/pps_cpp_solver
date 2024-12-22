@@ -18,7 +18,14 @@ private:
     string agv_input;
     string coef_res_input;
     string tsg_input;
+    string task_input;
     void set_max_node();
+    void controller();
+    void get_map_input();
+    void get_TSG_input();
+    void get_agv_info();
+    void get_coef_res_input();
+    void set_task();
 
 public:
     Coef coef;
@@ -26,11 +33,7 @@ public:
 
     Reader(string path);
 
-    void controller();
-    void get_map_input();
-    void get_TSG_input();
-    void get_agv_info();
-    void get_coef_res_input();
+    
     Coef set_coef();
 };
 

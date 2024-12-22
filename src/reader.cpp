@@ -4,10 +4,12 @@
 
 Reader::Reader(string path) : filepath(path) {}
 
-void Reader::set_max_node(){
+void Reader::set_max_node()
+{
     int tmp = INT_MAX;
-    for(auto agv : this->coef.AGVs){
-        tmp = min(agv.destination_node,tmp);
+    for (auto agv : this->coef.AGVs)
+    {
+        tmp = min(agv.destination_node, tmp);
     }
     this->coef.max = tmp;
 }
@@ -29,6 +31,8 @@ void Reader::controller()
     getline(file, this->map_input);
     this->map_input.pop_back();
     getline(file, this->tsg_input);
+    this->tsg_input.pop_back();
+    getline(file, this->task_input);
     file.close();
 }
 
@@ -45,17 +49,20 @@ void Reader::get_map_input()
     }
     while (getline(mapfile, line))
     {
-        istringstream iss(line);
-        char label;
-        int id1, id2, weight;
-        if (iss >> label >> id1 >> id2 >> weight)
+        if (line[0] == 'a' && line[1] == ' ')
         {
-            N = max(N, id1);
-            N = max(N, id2);
-        }
-        else
-        {
-            std::cerr << "Dòng không hợp lệ: " << line << std::endl;
+            istringstream iss(line);
+            char label;
+            int id1, id2, upper, lower, weight;
+            if (iss >> label >> id1 >> id2 >> upper >> lower >> weight)
+            {
+                N = max(N, id1);
+                N = max(N, id2);
+            }
+            else
+            {
+                std::cerr << "Dòng không hợp lệ: " << line << std::endl;
+            }
         }
     }
 
@@ -168,15 +175,54 @@ void Reader::get_coef_res_input()
     }
 }
 
+void Reader::set_task()
+{
+    map<int, tuple<int, int, int>> task_info;
+    for (auto agv : this->coef.AGVs)
+    {
+        task_info[agv.end_node] = make_tuple(agv.earliness, agv.tardliness, agv.destination_node);
+    }
+
+    ifstream taskfile(this->task_input);
+    if (!taskfile.is_open())
+    {
+        cerr << "Không thể mở tệp!" << endl;
+        return;
+    }
+    string line;
+
+    while (getline(taskfile, line))
+    {
+        stringstream ss(line);
+        int num;
+        vector<int> numbers;
+        while (ss >> num)
+        {
+            numbers.push_back(num); // Thêm số vào vector
+        }
+        int first = numbers.front();
+        for (auto &agv : this->coef.AGVs)
+        {
+            if (agv.start_node == first)
+            {
+                agv.end_node = numbers.back();                            // Lấy phần tử cuối cùng trong vector
+                agv.destination_node = get<2>(task_info[numbers.back()]); // Lấy destination_node từ task_info
+                agv.earliness = get<0>(task_info[numbers.back()]);        // Lấy earliness từ task_info
+                agv.tardliness = get<1>(task_info[numbers.back()]);       // Lấy tardliness từ task_info
+            }
+        }
+    }
+}
+
 Coef Reader::set_coef()
 {
-    
+
     controller();
     get_coef_res_input();
     get_agv_info();
     set_max_node();
     get_map_input();
     get_TSG_input();
-
+    //set_task();
     return this->coef;
 }

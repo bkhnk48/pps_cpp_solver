@@ -1,4 +1,5 @@
 /mnt/d/DATN/pathPlanningSimulation/data/Agv_data.txt
 /mnt/d/DATN/pathPlanningSimulation/data/Input_info.txt
-/mnt/d/DATN/pathPlanningSimulation/excelmap.txt
+/mnt/d/DATN/pathPlanningSimulation/spacemap.txt
 /mnt/d/DATN/pathPlanningSimulation/TSG.txt
+/mnt/d/DATN/pathPlanningSimulation/task_allocation.txt

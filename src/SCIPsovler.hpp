@@ -20,6 +20,8 @@ class Solver{
         SCIP_RETCODE Constraint4();
         SCIP_RETCODE Constraint5();
         SCIP_RETCODE Constraint6();
+        SCIP_RETCODE SubTWcons();
+        SCIP_RETCODE SubRestrictioncons();
     public:
         Coef Problem;
 

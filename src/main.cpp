@@ -7,7 +7,7 @@ int main(){
     // Sử dụng hàm set_coef để đọc toàn bộ dữ liệu
     Coef coef = reader.set_coef();
     Solver sol(coef);
-    sol.set_end_queue();
+    // sol.set_end_queue();
     SCIP_CALL(sol.Solve());
     SCIP_CALL(sol.Result());
     SCIP_CALL(sol.Free_resources());

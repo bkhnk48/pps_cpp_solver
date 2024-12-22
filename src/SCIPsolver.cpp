@@ -308,7 +308,7 @@ SCIP_RETCODE Solver::Constraint5()
                                             nullptr,
                                             nullptr,
                                             1.0,
-                                            1.0));
+                                            SCIP_VARTYPE_CONTINUOUS));
         for (auto Possible_end_node : destination[end_node])
         {
             for (auto e : this->Problem.invertex[Possible_end_node])

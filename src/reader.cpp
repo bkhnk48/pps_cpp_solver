@@ -25,7 +25,7 @@ void Reader::controller()
     }
 
     getline(file, this->agv_input);
-    this->agv_input.pop_back();
+    this->agv_input.pop_back();//nạp vào danh sách các AGVs
     getline(file, this->coef_res_input);
     this->coef_res_input.pop_back();
     getline(file, this->map_input);
